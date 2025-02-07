@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P-box Encryption Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+            min-width: 1024px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            width: 800px;
+            margin: 20px auto;
+        }
+        .binary {
+            font-family: monospace;
+            font-size: 1em;
+            color: #d35400;
+        }
+        .output {
+            margin-top: 10px;
+            font-size: 1.1em;
+            color: #27ae60;
+        }
+        .animation {
+            animation: fadeIn 2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .highlight {
+            background-color: #f1c40f;
+            transition: background-color 0.5s ease;
+        }
+        .step-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .step {
+            flex: 1;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            min-width: 200px;
+        }
+        .explanation {
+            font-size: 0.8em;
+            color: #666;
+            margin: 3px 0;
+        }
+        .bit-container {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 15px 0;
+            min-height: 35px;
+        }
+        .bit {
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+        }
+        .bit.highlight {
+            background-color: #f1c40f;
+            transform: scale(1.1);
+        }
+        .position-label {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 0.7em;
+        }
+    </style>
+</head>
+<body>
+    <h1>P-box Encryption Demo</h1>
+    <div class="container">
+        <div class="step-container">
+            <div class="step">
+                <p>Input Word: <strong>computer</strong></p>
+                <p>Binary Representation:</p>
+                <div id="binaryRepresentation"></div>
+            </div>
+            
+            <div class="step">
+                <p>P-box Transformation of 'c':</p>
+                <p class="explanation">Original positions (1,2,3,4,5,6,7,8):</p>
+                <div id="originalBits" class="bit-container"></div>
+                <p class="explanation">After permutation (2,7,5,1,3,4,6,8):</p>
+                <div id="transformedBits" class="bit-container"></div>
+            </div>
+
+            <div class="step">
+                <p>Encrypted Binary:</p>
+                <p class="binary output" id="encryptedBits"></p>
+                <p>Resulting Cipher Character:</p>
+                <p class="output" id="encryptedWord"></p>
+            </div>
+        </div>
+
+        <!-- Decryption Section -->
+        <div class="step-container">
+            <div class="step">
+                <p>Decryption Process:</p>
+                <p class="explanation">Encrypted Binary:</p>
+                <div id="encryptedBitsForDecryption" class="bit-container"></div>
+                <p class="explanation">After reverse permutation:</p>
+                <div id="decryptedBits" class="bit-container"></div>
+            </div>
+
+            <div class="step">
+                <p>Decrypted Binary:</p>
+                <p class="binary output" id="decryptedBinary"></p>
+                <p>Original Character:</p>
+                <p class="output" id="originalWord"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const word = "computer";
+
+        function textToBinary(text) {
+            return text.split('').map(char => {
+                return char.charCodeAt(0).toString(2).padStart(8, '0');
+            });
+        }
+
+        function applyPBox(binary) {
+            const pbox = [2, 7, 5, 1, 3, 4, 6, 8]; // Permutation table
+            let encryptedBits = '';
+            for (let i = 0; i < pbox.length; i++) {
+                encryptedBits += binary[pbox[i] - 1];
+            }
+            return encryptedBits;
+        }
+
+        function reversePBox(binary) {
+            const pbox = [2, 7, 5, 1, 3, 4, 6, 8]; // Permutation table
+            const reversePbox = []; // To store the reverse mapping
+            for (let i = 0; i < pbox.length; i++) {
+                reversePbox[pbox[i] - 1] = i + 1;
+            }
+            let decryptedBits = '';
+            for (let i = 0; i < reversePbox.length; i++) {
+                decryptedBits += binary[reversePbox[i] - 1];
+            }
+            return decryptedBits;
+        }
+
+        function binaryToText(binary) {
+            return String.fromCharCode(parseInt(binary, 2));
+        }
+
+        function createBitElement(bit, position) {
+            const bitEl = document.createElement('div');
+            bitEl.className = 'bit';
+            bitEl.innerHTML = `
+                <div class="position-label">${position}</div>
+                ${bit}
+            `;
+            return bitEl;
+        }
+
+        async function displayResults() {
+            const binaryRepresentation = document.getElementById('binaryRepresentation');
+            const originalBits = document.getElementById('originalBits');
+            const transformedBits = document.getElementById('transformedBits');
+            const encryptedBitsOutput = document.getElementById('encryptedBits');
+            const encryptedWordOutput = document.getElementById('encryptedWord');
+            const encryptedBitsForDecryption = document.getElementById('encryptedBitsForDecryption');
+            const decryptedBits = document.getElementById('decryptedBits');
+            const decryptedBinary = document.getElementById('decryptedBinary');
+            const originalWord = document.getElementById('originalWord');
+
+            // Convert word to binary and display
+            const binaryArray = textToBinary(word);
+            binaryArray.forEach((binary, index) => {
+                const charElement = document.createElement('p');
+                charElement.innerHTML = `<strong>${word[index]}</strong>: <span class="binary">${binary}</span>`;
+                binaryRepresentation.appendChild(charElement);
+            });
+
+            // Get first character's bits
+            const first8Bits = binaryArray[0];
+            
+            // Display original bits with positions
+            first8Bits.split('').forEach((bit, index) => {
+                originalBits.appendChild(createBitElement(bit, index + 1));
+            });
+
+            // Apply P-box and display transformed bits
+            const pbox = [2, 7, 5, 1, 3, 4, 6, 8]; // Permutation table
+            const encryptedBits = applyPBox(first8Bits);
+            
+            // Display transformed bits in their new positions
+            first8Bits.split('').forEach((_, index) => {
+                const newBit = encryptedBits[index];
+                transformedBits.appendChild(createBitElement(newBit, pbox[index]));
+            });
+
+            // Animate bits transformation
+            for (let i = 0; i < pbox.length; i++) {
+                const originalBit = originalBits.children[pbox[i] - 1];
+                const transformedBit = transformedBits.children[i];
+                
+                originalBit.classList.add('highlight');
+                await new Promise(resolve => setTimeout(resolve, 200));
+                transformedBit.classList.add('highlight');
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                originalBit.classList.remove('highlight');
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // Display final results with animation
+            encryptedBitsOutput.style.opacity = '0';
+            encryptedWordOutput.style.opacity = '0';
+            encryptedBitsOutput.textContent = encryptedBits;
+            const encryptedWord = binaryToText(encryptedBits);
+            encryptedWordOutput.textContent = encryptedWord;
+            
+            setTimeout(() => {
+                encryptedBitsOutput.style.transition = 'opacity 0.5s ease';
+                encryptedWordOutput.style.transition = 'opacity 0.5s ease';
+                encryptedBitsOutput.style.opacity = '1';
+                encryptedWordOutput.style.opacity = '1';
+            }, 500);
+
+            // Decryption Process
+            const decryptedBinaryBits = reversePBox(encryptedBits);
+            decryptedBinary.textContent = decryptedBinaryBits;
+            originalWord.textContent = binaryToText(decryptedBinaryBits);
+
+            // Display encrypted bits for decryption
+            encryptedBits.split('').forEach((bit, index) => {
+                encryptedBitsForDecryption.appendChild(createBitElement(bit, index + 1));
+            });
+
+            // Display decrypted bits
+            decryptedBinaryBits.split('').forEach((bit, index) => {
+                decryptedBits.appendChild(createBitElement(bit, index + 1));
+            });
+        }
+
+        window.onload = displayResults;
+    </script>
+</body>
+</html>
